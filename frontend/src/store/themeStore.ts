@@ -1,22 +1,32 @@
 import { create } from 'zustand';
 
+type Theme = 'dark' | 'light';
+
 interface ThemeState {
-    theme: 'dark' | 'light';
-    setTheme: (theme: 'dark' | 'light') => void;
+    theme: Theme;
+    setTheme: (theme: Theme) => void;
     toggleTheme: () => void;
 }
 
+const applyTheme = (theme: Theme) => {
+    document.documentElement.setAttribute('data-theme', theme);
+    // Cookie read server-side in layout.tsx to apply theme before first paint (no FWOT)
+    document.cookie = `theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+};
+
 export const useThemeStore = create<ThemeState>((set) => ({
-    theme: 'dark', // default to dark
+    // Read the current data-theme from the DOM (set by server via cookie in layout.tsx)
+    // This keeps Zustand in sync with the server-rendered value on hydration
+    theme: (typeof document !== 'undefined'
+        ? (document.documentElement.getAttribute('data-theme') as Theme) ?? 'dark'
+        : 'dark'),
     setTheme: (theme) => {
+        applyTheme(theme);
         set({ theme });
-        document.documentElement.setAttribute('data-theme', theme);
-        document.cookie = `theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
     },
     toggleTheme: () => set((state) => {
-        const newTheme = state.theme === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        document.cookie = `theme=${newTheme}; path=/; max-age=31536000; SameSite=Lax`;
+        const newTheme: Theme = state.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(newTheme);
         return { theme: newTheme };
     }),
 }));

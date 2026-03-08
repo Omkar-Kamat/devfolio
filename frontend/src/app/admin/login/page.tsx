@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import MagneticButton from '@/components/animations/MagneticButton';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AdminLogin() {
     const [email, setEmail] = useState('');
@@ -10,6 +11,7 @@ export default function AdminLogin() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const { setAccessToken } = useAuthStore();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,9 +19,13 @@ export default function AdminLogin() {
         setError('');
 
         try {
-            const res = await fetch('http://localhost:5000/api/auth/login', {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${apiBase}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                // credentials: 'include' is REQUIRED for the HttpOnly refresh_token cookie
+                // to be set by Express on cross-origin requests
+                credentials: 'include',
                 body: JSON.stringify({ email, password }),
             });
 
@@ -29,11 +35,10 @@ export default function AdminLogin() {
                 throw new Error(data.message || 'Login failed');
             }
 
-            // In a real app we might store token in a global store if needed,
-            // but HTTP-only cookies handle the active session automatically for our requests.
-            // We just redirect to the dashboard.
-            router.push('/admin');
+            // Store access token in memory (Zustand) — NEVER in localStorage per design spec NFR-S-01
+            setAccessToken(data.accessToken);
 
+            router.push('/admin');
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -65,6 +70,7 @@ export default function AdminLogin() {
                             className="w-full bg-base-tertiary border border-border-card rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-accent-blue transition-colors"
                             placeholder="admin@devfolio.com"
                             required
+                            autoComplete="email"
                         />
                     </div>
                     <div className="flex flex-col gap-2">
@@ -76,6 +82,7 @@ export default function AdminLogin() {
                             className="w-full bg-base-tertiary border border-border-card rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-accent-blue transition-colors"
                             placeholder="••••••••"
                             required
+                            autoComplete="current-password"
                         />
                     </div>
 
@@ -91,3 +98,4 @@ export default function AdminLogin() {
         </main>
     );
 }
+

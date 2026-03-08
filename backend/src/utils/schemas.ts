@@ -12,7 +12,18 @@ export const ContactMessageSchema = z.object({
     message: z.string().min(10),
 });
 
+// Full ProjectSchema aligned with Project model and design spec Section 7
 export const ProjectSchema = z.object({
     title: z.string().min(1),
-    // add other fields as needed
+    description: z.string().min(1),
+    tech: z.array(z.string()).default([]),
+    images: z.array(z.string()).default([]),
+    links: z.object({
+        github: z.string().url().optional().or(z.literal('')),
+        live: z.string().url().optional().or(z.literal('')),
+    }).default({}),
+    featured: z.boolean().default(false),
+    order: z.number().int().default(0),
+    slug: z.string().optional(),
+    active: z.boolean().default(true),
 });
