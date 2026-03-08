@@ -1,0 +1,3 @@
+*.docx
+*.py
+/node_modules
